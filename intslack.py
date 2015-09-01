@@ -106,11 +106,16 @@ def user_info(id):
         return None
 
 def clean_up(body):
-    body = body.replace('<br>', '\n')
-    body = body.replace('</p><p>', '\n')
-    body = body.replace('<p>', '')
-    soup = BeautifulSoup(body)
-    return soup.get_text()
+
+   # Once in a while we get a "null" body.
+   if body:
+        body = body.replace('<br>', '\n')
+        body = body.replace('</p><p>', '\n')
+        body = body.replace('<p>', '')
+        soup = BeautifulSoup(body)
+        return soup.get_text()
+   else:
+       return ""
 
 def intercom_parse(notification):
 
