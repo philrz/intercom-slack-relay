@@ -314,7 +314,7 @@ session = requests.Session()
 
 if __name__ == '__main__':
     startup_msg = {
-                      "text": "Custom <https://github.com/jut-io/intercom-slack-relay|intercom-slack-relay> starting up\nMaintained by <mailto:" + email + "|" + email + ">\nCheck #" + backupchannel + " for any messages that may have been missed while relay was offline",
+                      "text": "Custom <https://github.com/philrz/intercom-slack-relay|intercom-slack-relay> starting up\nMaintained by <mailto:" + email + "|" + email + ">\nCheck #" + backupchannel + " for any messages that may have been missed while relay was offline",
                       "color": "danger"
                   }
     slacksend_channel(startup_msg, slackchannel)
