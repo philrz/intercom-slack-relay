@@ -47,8 +47,8 @@ def parse_args():
     parser.add_argument('--port', help='TCP port to listen on for Intercom notifications',
                         dest='port', required=True)
     parser.add_argument('--appid', help='Intercom App ID', dest='appid', required=True)
-    parser.add_argument('--apikey', help='Intercom API Key', dest='apikey', required=True)
-    parser.add_argument('--token', help='Slack API token', dest='token', required=True)
+    parser.add_argument('--inttoken', help='Intercom Access Token', dest='inttoken', required=True)
+    parser.add_argument('--slacktoken', help='Slack API token', dest='slacktoken', required=True)
     parser.add_argument('--channel', help='Slack channel to send messages to (no hash)',
                         dest='channel', required=True)
     parser.add_argument('--backupchannel', help='Backup channel with native relay pointing at it (no hash)',
@@ -76,7 +76,7 @@ def failmail(addr, message, copy_to_slack=True):
 def user_info(id):
     try:
         info = {}
-        req = session.get("https://api.intercom.io/users/" + id, auth=(appid, apikey), headers=headers)
+        req = session.get("https://api.intercom.io/users/" + id, headers=headers)
         if req.status_code == 200:
             u = req.json()
             logger.info('User record from Infocom:\n' + json.dumps(u, sort_keys=True, indent=4))
@@ -303,13 +303,16 @@ def process_notification():
 cmdline_args = parse_args()
 port = int(cmdline_args.port)
 appid = cmdline_args.appid
-apikey = cmdline_args.apikey
+inttoken = cmdline_args.inttoken
 email = cmdline_args.email
-slackauth = { 'token': cmdline_args.token }
+slackauth = { 'token': cmdline_args.slacktoken }
 slackchannel = cmdline_args.channel
 backupchannel = cmdline_args.backupchannel
 logger = prep_logging('intslack', 'intslack.log')
-headers = { "Accept": "application/json" }
+headers = {
+            'Accept': 'application/json',
+            'Authorization': 'Bearer ' + inttoken
+          }
 session = requests.Session()
 
 if __name__ == '__main__':
