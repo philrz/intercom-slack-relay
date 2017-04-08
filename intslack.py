@@ -96,7 +96,7 @@ def user_info(id):
             if 'name' in company:
                 companies = companies + company['name'] + ' '
         if companies == '':
-            info['company'] = 'no company'
+            info['company'] = u['email']
         else:
             info['company'] = ("<https://app.intercom.io/a/apps/" + appid + "/companies/" +
                                company['id'] + "|" + companies[:-1] + ">")
@@ -202,6 +202,15 @@ def intercom_parse(notification):
                     notification['data']['item']['links']['conversation_web'] + "|conversation> with " +
                     notification['data']['item']['assignee']['name'] + '\n' +
                     part['body'])
+                return({"text": message, "color": "1414ff"})
+            else:
+                return None
+
+        elif notification['topic'] == 'user.created':
+            uinfo = user_info(notification['data']['item']['id'])
+            if uinfo:
+                message = ('Intercom user ' + uinfo['name'] + " (" +
+                    uinfo['company'] + ") was created")
                 return({"text": message, "color": "1414ff"})
             else:
                 return None
