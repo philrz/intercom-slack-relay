@@ -273,7 +273,7 @@ def slacksend_channel(message, channel_name):
                 resp = req.json()
                 logger.info('Response from Slack message post:\n' + json.dumps(resp, sort_keys=True, indent=4))
                 return resp['ok']
-            elif req.status_code == 414:
+            elif req.status_code == 414 or req.status_code == 413:
                 logger.info('Response code 414 from Slack message post. Cutting in half and trying again.\n')
                 trailer = '\n\n[This message was too long to relay to Slack. You\'ll have to click to Intercom to see the whole thing.]\n'
                 msglen /= 2
