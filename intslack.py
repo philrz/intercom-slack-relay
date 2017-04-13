@@ -55,6 +55,8 @@ def parse_args():
                         dest='backupchannel', required=True)
     parser.add_argument('--email', help='E-mail addrress of who to contact on failures',
                         dest='email', required=True)
+    parser.add_argument('--threads', help='Maintain Slack Threads for Intercom conversations',
+                        dest='threads', action='store_true')
     return parser.parse_args()
 
 def failmail(addr, message, copy_to_slack=True):
@@ -121,20 +123,28 @@ def intercom_parse(notification):
 
     try:
         if notification['topic'] == 'conversation.admin.replied':
+            ret = {}
             for part in notification['data']['item']['conversation_parts']['conversation_parts']:
                 part['body'] = clean_up(part['body'])
                 uinfo = user_info(notification['data']['item']['user']['id'])
                 if uinfo:
                     message = (part['author']['name'] + " replied to <" +
-                    notification['data']['item']['links']['conversation_web'] + "|a conversation> with " +
+                        notification['data']['item']['links']['conversation_web'] + "|a conversation> with " +
                         uinfo['name'] + " (" +
                         uinfo['company'] + ")\n" +
                         part['body'])
-                    return({"text": message, "color": "ffce49"})
+                    if 'part_type' in part:
+                        if part['part_type'] == 'close':
+                            ret['close'] = True
+                    ret['text'] = message
+                    ret['color'] = 'ffce49'
+                    ret['conv_id'] = notification['data']['item']['id']
+                    return ret
                 else:
                     return None
     
         elif notification['topic'] == 'conversation.user.replied':
+            ret = {}
             for part in notification['data']['item']['conversation_parts']['conversation_parts']:
                 part['body'] = clean_up(part['body'])
                 uinfo = user_info(part['author']['id'])
@@ -144,55 +154,82 @@ def intercom_parse(notification):
                         notification['data']['item']['links']['conversation_web'] + "|a conversation> with " +
                         notification['data']['item']['assignee']['name'] + '\n' +
                         part['body'])
-                    return({"text": message, "color": "1414ff"})
+                    if 'part_type' in part:
+                        if part['part_type'] == 'close':
+                            ret['close'] = True
+                    ret['text'] = message
+                    ret['color'] = '1414ff'
+                    ret['conv_id'] = notification['data']['item']['id']
+                    return ret
                 else:
                     return None
 
-        elif notification['topic'] in [ 'conversation.admin.opened', 'conversation.admin.closed' ]:
-            operation = string.split(notification['topic'], '.')[2]
+        elif notification['topic'] == 'conversation.admin.opened':
+            ret = {}
             for part in notification['data']['item']['conversation_parts']['conversation_parts']:
                 part['body'] = clean_up(part['body'])
                 uinfo = user_info(notification['data']['item']['user']['id'])
                 if uinfo:
-                    message = (part['author']['name'] + " " + operation + " <" +
-                    notification['data']['item']['links']['conversation_web'] + "|a conversation> with " +
+                    message = (part['author']['name'] + " opened <" +
+                        notification['data']['item']['links']['conversation_web'] + "|a conversation> with " +
                         uinfo['name'] + " (" +
                         uinfo['company'] + ")\n" +
                         part['body'])
-                    return({"text": message, "color": "ffce49"})
+                    if 'part_type' in part:
+                        if part['part_type'] == 'close':
+                            ret['close'] = True
+                    ret['text'] = message
+                    ret['color'] = 'ffce49'
+                    ret['conv_id'] = notification['data']['item']['id']
+                    return ret
                 else:
                     return None
 
         elif notification['topic'] == 'conversation.admin.closed':
+            ret = {}
             for part in notification['data']['item']['conversation_parts']['conversation_parts']:
                 part['body'] = clean_up(part['body'])
                 uinfo = user_info(notification['data']['item']['user']['id'])
                 if uinfo:
                     message = (part['author']['name'] + " closed <" +
-                    notification['data']['item']['links']['conversation_web'] + "|a conversation> with " +
+                        notification['data']['item']['links']['conversation_web'] + "|a conversation> with " +
                         uinfo['name'] + " (" +
                         uinfo['company'] + ")\n" +
                         part['body'])
-                    return({"text": message, "color": "ffce49"})
+                    if 'part_type' in part:
+                        if part['part_type'] == 'close':
+                            ret['close'] = True
+                    ret['text'] = message
+                    ret['color'] = 'ffce49'
+                    ret['conv_id'] = notification['data']['item']['id']
+                    return ret
                 else:
                     return None
 
         elif notification['topic'] == 'conversation.admin.assigned':
+            ret = {}
             for part in notification['data']['item']['conversation_parts']['conversation_parts']:
                 part['body'] = clean_up(part['body'])
                 uinfo = user_info(notification['data']['item']['user']['id'])
                 if uinfo:
                     message = (part['author']['name'] + " assigned <" +
-                    notification['data']['item']['links']['conversation_web'] + "|a conversation> with " +
+                        notification['data']['item']['links']['conversation_web'] + "|a conversation> with " +
                         uinfo['name'] + " (" +
                         uinfo['company'] +
                         ") to " + part['assigned_to']['name'] + "\n" +
                         part['body'])
-                    return({"text": message, "color": "ffce49"})
+                    if 'part_type' in part:
+                        if part['part_type'] == 'close':
+                            ret['close'] = True
+                    ret['text'] = message
+                    ret['color'] = 'ffce49'
+                    ret['conv_id'] = notification['data']['item']['id']
+                    return ret
                 else:
                     return None
 
         elif notification['topic'] == 'conversation.user.created':
+            ret = {}
             part = notification['data']['item']['conversation_message']
             part['body'] = clean_up(part['body'])
             uinfo = user_info(part['author']['id'])
@@ -202,7 +239,13 @@ def intercom_parse(notification):
                     notification['data']['item']['links']['conversation_web'] + "|conversation> with " +
                     notification['data']['item']['assignee']['name'] + '\n' +
                     part['body'])
-                return({"text": message, "color": "1414ff"})
+                if 'part_type' in part:
+                    if part['part_type'] == 'close':
+                        ret['close'] = True
+                ret['text'] = message
+                ret['color'] = '1414ff'
+                ret['conv_id'] = notification['data']['item']['id']
+                return ret
             else:
                 return None
 
@@ -216,6 +259,7 @@ def intercom_parse(notification):
                 return None
 
         elif notification['topic'] == 'conversation.admin.noted':
+            ret = {}
             for part in notification['data']['item']['conversation_parts']['conversation_parts']:
                 part['body'] = clean_up(part['body'])
                 uinfo = user_info(notification['data']['item']['user']['id'])
@@ -226,7 +270,13 @@ def intercom_parse(notification):
                         uinfo['name'] + " (" +
                         uinfo['company'] + ")\n" +
                         part['body'])
-                    return({"text": message, "color": "ffce49"})
+                    if 'part_type' in part:
+                        if part['part_type'] == 'close':
+                            ret['close'] = True
+                    ret['text'] = message
+                    ret['color'] = 'ffce49'
+                    ret['conv_id'] = notification['data']['item']['id']
+                    return ret
                 else:
                     return None
 
@@ -255,6 +305,12 @@ def slacksend_channel(message, channel_name):
         args = copy.deepcopy(slackauth)
         args['channel'] = channel['channel']['id']
         args['username'] = 'Intercom'
+        if threads:
+            if 'conv_id' in message:
+                if message['conv_id'] in conv_threads:
+                    args['thread_ts'] = conv_threads[message['conv_id']]
+                    if 'close' in message:
+                        args['reply_broadcast'] = True
 
         # If the message is too big, Slack will send us a response code 414. Keep chopping the message in
         # half until it goes through.
@@ -272,6 +328,10 @@ def slacksend_channel(message, channel_name):
             if req.status_code == 200:
                 resp = req.json()
                 logger.info('Response from Slack message post:\n' + json.dumps(resp, sort_keys=True, indent=4))
+                if threads:
+                    if 'conv_id' in message:
+                        if message['conv_id'] not in conv_threads:
+                            conv_threads[message['conv_id']] = resp['ts']
                 return resp['ok']
             elif req.status_code == 414 or req.status_code == 413:
                 logger.info('Response code 414 from Slack message post. Cutting in half and trying again.\n')
@@ -300,6 +360,16 @@ def process_notification():
         if message:
            if slacksend_channel(message, slackchannel):
                logger.info('Successfully relayed a parsed Intercom message to Slack')
+               if 'close' in message:
+                   # Send the message again as non-threaded so everyone sees. The broadcast
+                   # reply didn't include the message for some reason (by design).
+                   conv_threads.pop(message['conv_id'])
+                   message.pop('close')
+                   message['text'] = '^^^ ' + message['text']
+                   if slacksend_channel(message, slackchannel):
+                       logger.info('Successfully re-relayed thread close message to Slack')
+                   else:
+                       logger.info('Was not able to re-relayed thread close message to Slack')
                return("OK")
            else:
                logger.info('Something went wrong when trying to send to Slack')
@@ -317,6 +387,8 @@ email = cmdline_args.email
 slackauth = { 'token': cmdline_args.slacktoken }
 slackchannel = cmdline_args.channel
 backupchannel = cmdline_args.backupchannel
+threads = cmdline_args.threads
+conv_threads = {}
 logger = prep_logging('intslack', 'intslack.log')
 headers = {
             'Accept': 'application/json',
