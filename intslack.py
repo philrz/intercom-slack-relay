@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import sys
+import os
 import json
 import copy
 import requests
@@ -15,6 +16,8 @@ import string
 from email.mime.text import MIMEText
 from flask import Flask, request, jsonify
 from bs4 import BeautifulSoup
+
+CONV_THREADS_FILE = 'conv_threads.json'
 
 # Intercom unfortunately is not willing to provide a whitelist of source IP addresses from which
 # we might get webhook notifications. As a result, the TCP port has to be open to the world.
@@ -310,7 +313,10 @@ def slacksend_channel(message, channel_name):
                 if message['conv_id'] in conv_threads:
                     args['thread_ts'] = conv_threads[message['conv_id']]
                     if 'close' in message:
+                        #message['text'] = '(thread closed)\n' + message['text']
                         args['reply_broadcast'] = True
+                #else:
+                #    message['text'] = '(new thread)\n' + message['text']
 
         # If the message is too big, Slack will send us a response code 414. Keep chopping the message in
         # half until it goes through.
@@ -332,6 +338,9 @@ def slacksend_channel(message, channel_name):
                     if 'conv_id' in message:
                         if message['conv_id'] not in conv_threads:
                             conv_threads[message['conv_id']] = resp['ts']
+                            with open(CONV_THREADS_FILE + '.tmp', 'w') as f:
+                                json.dump(conv_threads, f, sort_keys=True, indent=4)
+                            os.rename(CONV_THREADS_FILE + '.tmp', CONV_THREADS_FILE)
                 return resp['ok']
             elif req.status_code == 414 or req.status_code == 413:
                 logger.info('Response code 414 from Slack message post. Cutting in half and trying again.\n')
@@ -360,16 +369,6 @@ def process_notification():
         if message:
            if slacksend_channel(message, slackchannel):
                logger.info('Successfully relayed a parsed Intercom message to Slack')
-               if 'close' in message:
-                   # Send the message again as non-threaded so everyone sees. The broadcast
-                   # reply didn't include the message for some reason (by design).
-                   conv_threads.pop(message['conv_id'])
-                   message.pop('close')
-                   message['text'] = '^^^ ' + message['text']
-                   if slacksend_channel(message, slackchannel):
-                       logger.info('Successfully re-relayed thread close message to Slack')
-                   else:
-                       logger.info('Was not able to re-relayed thread close message to Slack')
                return("OK")
            else:
                logger.info('Something went wrong when trying to send to Slack')
@@ -388,7 +387,12 @@ slackauth = { 'token': cmdline_args.slacktoken }
 slackchannel = cmdline_args.channel
 backupchannel = cmdline_args.backupchannel
 threads = cmdline_args.threads
-conv_threads = {}
+if threads:
+    if os.path.isfile(CONV_THREADS_FILE):
+        with open(CONV_THREADS_FILE, 'r') as f:
+            conv_threads = json.load(f)
+    else:
+        conv_threads = {}
 logger = prep_logging('intslack', 'intslack.log')
 headers = {
             'Accept': 'application/json',
