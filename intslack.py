@@ -92,8 +92,10 @@ def user_info(id):
 
         if u['name']:
             known_as = u['name']
+        elif u['pseudonym']:
+            known_as = u['pseudonym']
         else:
-            known_as = u['email']
+            known_as = 'Anonymous user'
         info['name'] = ("<https://app.intercom.io/a/apps/" + appid + "/users/" + u['id'] + "|" + known_as + ">")
         companies = ''
         for company in u['companies']['companies']:
@@ -101,7 +103,10 @@ def user_info(id):
             if 'name' in company:
                 companies = companies + company['name'] + ' '
         if companies == '':
-            info['company'] = u['email']
+            if u['email']:
+                info['company'] = u['email']
+            else:
+                info['company'] = 'anonymous'
         else:
             info['company'] = ("<https://app.intercom.io/a/apps/" + appid + "/companies/" +
                                company['id'] + "|" + companies[:-1] + ">")
