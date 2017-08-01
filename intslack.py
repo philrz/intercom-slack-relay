@@ -160,7 +160,7 @@ def intercom_parse(notification):
                     message = (uinfo['name'] + " (" +
                         uinfo['company'] + ") replied to <" + 
                         notification['data']['item']['links']['conversation_web'] + "|a conversation> with " +
-                        notification['data']['item']['assignee']['name'] + '\n' +
+                        notification['data']['item']['assignee'].get('name', 'nobody') + '\n' +
                         part['body'])
                     if 'part_type' in part:
                         if part['part_type'] == 'close':
@@ -245,7 +245,7 @@ def intercom_parse(notification):
                 message = (uinfo['name'] + " (" +
                     uinfo['company'] + ") started a new <" +
                     notification['data']['item']['links']['conversation_web'] + "|conversation> with " +
-                    notification['data']['item']['assignee']['name'] + '\n' +
+                    notification['data']['item']['assignee'].get('name', 'nobody') + '\n' +
                     part['body'])
                 if 'part_type' in part:
                     if part['part_type'] == 'close':
