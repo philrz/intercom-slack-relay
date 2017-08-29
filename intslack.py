@@ -224,7 +224,7 @@ def intercom_parse(notification):
                         notification['data']['item']['links']['conversation_web'] + "|a conversation> with " +
                         uinfo['name'] + " (" +
                         uinfo['company'] +
-                        ") to " + part['assigned_to']['name'] + "\n" +
+                        ") to " + part['assigned_to'].get('name', 'nobody') + "\n" +
                         part['body'])
                     if 'part_type' in part:
                         if part['part_type'] == 'close':
